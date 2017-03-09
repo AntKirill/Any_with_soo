@@ -17,6 +17,7 @@ namespace mylib {
     };
 
     struct any {
+
         // construct/copy/destruct
         any() {
             ptr = nullptr;
@@ -32,12 +33,12 @@ namespace mylib {
 
         template<typename ValueType>
         any(const ValueType &rhs) {
-            ptr = new war<ValueType>(rhs);
+            ptr = new war<rem_ref_t<decltype(rhs)>>(rhs);
         }
 
         template<typename ValueType>
         any(ValueType &&rhs) noexcept {
-            ptr = new war<ValueType>(rhs);
+            ptr = new war<rem_ref_t<decltype(rhs)>>(rhs);
         }
 
         any &operator=(const any &rhs) {
@@ -55,14 +56,14 @@ namespace mylib {
         template<typename ValueType>
         any &operator=(const ValueType &rhs) {
             delete ptr;
-            ptr = new war<ValueType>(rhs);
+            ptr = new war<rem_ref_t<decltype(rhs)>>(rhs);
             return *this;
         }
 
         template<typename ValueType>
         any &operator=(ValueType &&rhs) noexcept {
             delete ptr;
-            ptr = new war<ValueType>(rhs);
+            ptr = new war<rem_ref_t<decltype(rhs)>>(rhs);
             return *this;
         }
 
@@ -103,6 +104,10 @@ namespace mylib {
         friend ValueType *any_cast(any *);
 
     private:
+
+        template <typename T>
+        using rem_ref_t = typename std::remove_reference<T>::type;
+
         struct god_of_war {
             virtual ~god_of_war() {}
 
@@ -127,7 +132,7 @@ namespace mylib {
                 return obj;
             }
 
-            T *get_adr_obj() noexcept {
+            T *get_adr_obj() {
                 return &obj;
             }
 
