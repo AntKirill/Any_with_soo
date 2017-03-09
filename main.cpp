@@ -1,6 +1,7 @@
 #include <iostream>
 #include <boost/any.hpp>
 #include "any_with_soo.h"
+#include <cstdint>
 
 using namespace std;
 
@@ -38,10 +39,10 @@ void test2() {
 	mylib::any a = v;
 	
 	vector<int> v1 = mylib::any_cast<vector<int> >(a); 
-	for (size_t i = 0; i < v1.size(); i++) {
-		cout << v[i] << " ";
-	}
-	cout << endl;
+	 for (size_t i = 0; i < v1.size(); i++) {
+	 	cout << v[i] << " ";
+	 }
+	 cout << endl;
 }
 
 void test3() {
@@ -54,7 +55,7 @@ void test3() {
 }
 
 int main() {
-	test1();
+//	test1();
 	test2();
-	test3();
+//	test3();
 }
