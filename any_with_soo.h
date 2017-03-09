@@ -41,11 +41,13 @@ namespace mylib {
         }
 
         any &operator=(const any &rhs) {
+            delete ptr;
             ptr = rhs.ptr->make_copy();
             return *this;
         }
 
         any &operator=(any &&rhs) noexcept {
+            delete ptr;
             ptr = rhs.ptr;
             return *this;
         }
