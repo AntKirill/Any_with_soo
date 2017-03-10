@@ -24,46 +24,50 @@ namespace mylib {
         }
 
         any(const any &rhs) {
+            if (rhs.empty()) ptr = nullptr;
             ptr = rhs.ptr->make_copy();
         }
 
         any(any &&rhs) noexcept {
             ptr = rhs.ptr;
+            rhs.clear();
         }
 
         template<typename ValueType>
         any(const ValueType &rhs) {
-            ptr = new war<rem_ref_t<decltype(rhs)>>(rhs);
+            ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
         }
 
-        template<typename ValueType>
+        template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type>
         any(ValueType &&rhs) noexcept {
-            ptr = new war<rem_ref_t<decltype(rhs)>>(rhs);
+            ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
         }
 
         any &operator=(const any &rhs) {
-            delete ptr;
+            clear();
+            if (rhs.empty()) return *this;
             ptr = rhs.ptr->make_copy();
             return *this;
         }
 
         any &operator=(any &&rhs) noexcept {
-            delete ptr;
-            ptr = rhs.ptr;
+            clear();
+            *this = rhs;
+            rhs.clear();
             return *this;
         }
 
         template<typename ValueType>
         any &operator=(const ValueType &rhs) {
-            delete ptr;
-            ptr = new war<rem_ref_t<decltype(rhs)>>(rhs);
+            clear();
+            ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
             return *this;
         }
 
-        template<typename ValueType>
+        template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type>
         any &operator=(ValueType &&rhs) noexcept {
             delete ptr;
-            ptr = new war<rem_ref_t<decltype(rhs)>>(rhs);
+            ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
             return *this;
         }
 
@@ -85,7 +89,13 @@ namespace mylib {
         }
 
         const std::type_info &type() const {
+            if (empty()) return typeid(void);
             return ptr->get_type_info();
+        }
+
+        void clear() noexcept {
+            delete ptr;
+            ptr = nullptr;
         }
 
         template<typename T>
@@ -105,7 +115,7 @@ namespace mylib {
 
     private:
 
-        template <typename T>
+        template<typename T>
         using rem_ref_t = typename std::remove_reference<T>::type;
 
         struct god_of_war {
@@ -119,6 +129,8 @@ namespace mylib {
         template<typename T>
         struct war : public god_of_war {
             war(T obj) : obj(obj) {}
+
+            war() {}
 
             const std::type_info &get_type_info() const noexcept {
                 return typeid(obj);
@@ -174,7 +186,7 @@ namespace mylib {
     T *any_cast(any *a) {
         any::war<T> *casted = dynamic_cast<any::war<T> *>(a->ptr);
         if (casted == 0) {
-            throw mylib::bad_any_cast("bad any cast");
+            return nullptr;
         }
         return casted->get_adr_obj();
     }
