@@ -129,7 +129,7 @@ namespace mylib {
 
         template<typename T>
         struct war : public god_of_war {
-            war(T &&obj) : obj(static_cast< T&& >(obj)) {}
+            war(T &&obj) : obj(std::move(obj)) {}
 
             war(const T &obj) : obj(obj) {}
 
@@ -142,14 +142,6 @@ namespace mylib {
             god_of_war *make_copy(allocator *alloc) const {
                 return alloc->allocate(obj);
             }
-
-            T get_obj() noexcept {
-                return obj;
-            }
-//
-//            T *get_adr_obj() {
-//                return &obj;
-//            }
 
             T obj;
         };
@@ -216,7 +208,7 @@ namespace mylib {
         if (casted == 0) {
             throw mylib::bad_any_cast("bad any cast");
         }
-        return casted->get_obj();
+        return casted->obj;
     }
 
     template<typename T>
@@ -234,22 +226,13 @@ namespace mylib {
 
     template<typename T>
     T *any_cast(any *a) {
-//        any::war<T> *casted = dynamic_cast<any::war<T> *>(a->ptr);
-//        if (casted == 0) {
-//            return nullptr;
-//        }
-//        return casted->get_adr_obj();
         return a && a->type() == typeid(T)
                ? &static_cast<any::war<typename std::remove_cv<T>::type> *>(a->ptr)->obj
-               : 0;
+               : nullptr;
     }
 
     template<typename T>
     const T *any_cast(const any *a) {
-//        mylib::any *tmp;
-//        tmp = const_cast<any *>(a);
-//        T *ans = any_cast<T>(tmp);
-//        return ans;
         return any_cast<T>(const_cast<any *>(a));
     }
 }

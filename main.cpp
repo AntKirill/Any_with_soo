@@ -1,7 +1,7 @@
 #include <iostream>
-#include <boost/any.hpp>
 #include "any_with_soo.h"
 #include <cstdint>
+#include <vector>
 
 using namespace std;
 
@@ -24,7 +24,7 @@ void test1() {
 
 	mylib::any anystr = 2;
 	mylib::any anyint = string("Hello, World!");
-	swap(anystr, anyint);
+	mylib::swap(anystr, anyint);
 	cout << mylib::any_cast<string>(anystr) << endl;
 	cout << mylib::any_cast<int>(anyint) << endl;
 
@@ -54,8 +54,30 @@ void test3() {
 	cout << mylib::any_cast<int>(t) << endl;
 }
 
+void test4() {
+	mylib::any a = 5;
+	mylib::any b = string("Privet");
+	a = b;
+	cout << mylib::any_cast<string>(a) << endl;
+	cout << mylib::any_cast<string>(b) << endl;
+}
+
+struct local {
+	void *mas[3];
+};
+
+void test0() {
+   
+	local aa;
+    mylib::any a = aa;
+
+//    cout << mylib::any_cast<int>(a) << endl;
+}
+
 int main() {
-//	test1();
+    test0();
+	test1();
 	test2();
-//	test3();
+	test3();
+    test4();
 }
