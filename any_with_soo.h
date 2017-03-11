@@ -77,27 +77,38 @@ namespace mylib {
 
         // modifiers
         any &swap(any &rhs) noexcept {
+            if (this->memalloc.tag == allocator::Tag_t::EMPTY) {
+                *this = rhs;
+                rhs.clear();
+            }
+            if (rhs.memalloc.tag == allocator::Tag_t::EMPTY) {
+                rhs = *this;
+                this->clear();
+            }
             if (this->memalloc.tag == allocator::Tag_t::BIG && rhs.memalloc.tag == allocator::Tag_t::BIG) {
                 std::swap(this->ptr, rhs.ptr);
-                return *this;
-            }
-            if (this->memalloc.tag == allocator::Tag_t::SMALL && rhs.memalloc.tag == allocator::Tag_t::SMALL) {
+            } else if (this->memalloc.tag == allocator::Tag_t::SMALL && rhs.memalloc.tag == allocator::Tag_t::SMALL) {
                 any tmp = rhs;
                 rhs = *this;
                 *this = tmp;
-            }
-            if (this->memalloc.tag == allocator::Tag_t::BIG && rhs.memalloc.tag == allocator::Tag_t::SMALL) {
+            } else if (this->memalloc.tag == allocator::Tag_t::BIG && rhs.memalloc.tag == allocator::Tag_t::SMALL) {
                 god_of_war *tmp_ptr = this->ptr;
-                rhs.ptr->make_copy(this->memalloc_ptr);
-                rhs.clear();
+                this->ptr = nullptr;
+                this->ptr = rhs.ptr->make_copy(this->memalloc_ptr);
+                rhs.memalloc.free(rhs.ptr);
                 rhs.ptr = tmp_ptr;
-            }
-            if (this->memalloc.tag == allocator::Tag_t::SMALL && rhs.memalloc.tag == allocator::Tag_t::BIG) {
+                this->memalloc.tag = allocator::Tag_t::SMALL;
+                rhs.memalloc.tag = allocator::Tag_t::BIG;
+            } else if (this->memalloc.tag == allocator::Tag_t::SMALL && rhs.memalloc.tag == allocator::Tag_t::BIG) {
                 god_of_war *tmp_ptr = rhs.ptr;
                 rhs.ptr = nullptr;
-                
+                rhs.ptr = this->ptr->make_copy(rhs.memalloc_ptr);
+                this->memalloc.free(this->ptr);
                 this->ptr = tmp_ptr;
+                this->memalloc.tag = allocator::Tag_t::BIG;
+                rhs.memalloc.tag = allocator::Tag_t::SMALL;
             }
+            return *this;
         }
 
         // queries
