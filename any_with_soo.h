@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <typeinfo>
+#include <type_traits>
 
 namespace mylib {
 
@@ -15,7 +16,6 @@ namespace mylib {
             return message.c_str();
         }
     };
-
     struct any {
 
         // construct/copy/destruct
@@ -77,9 +77,27 @@ namespace mylib {
 
         // modifiers
         any &swap(any &rhs) noexcept {
-            std::swap(this->ptr, rhs.ptr);
-            std::swap(this->memalloc_ptr, rhs.memalloc_ptr);
-            return *this;
+            if (this->memalloc.tag == allocator::Tag_t::BIG && rhs.memalloc.tag == allocator::Tag_t::BIG) {
+                std::swap(this->ptr, rhs.ptr);
+                return *this;
+            }
+            if (this->memalloc.tag == allocator::Tag_t::SMALL && rhs.memalloc.tag == allocator::Tag_t::SMALL) {
+                any tmp = rhs;
+                rhs = *this;
+                *this = tmp;
+            }
+            if (this->memalloc.tag == allocator::Tag_t::BIG && rhs.memalloc.tag == allocator::Tag_t::SMALL) {
+                god_of_war *tmp_ptr = this->ptr;
+                rhs.ptr->make_copy(this->memalloc_ptr);
+                rhs.clear();
+                rhs.ptr = tmp_ptr;
+            }
+            if (this->memalloc.tag == allocator::Tag_t::SMALL && rhs.memalloc.tag == allocator::Tag_t::BIG) {
+                god_of_war *tmp_ptr = rhs.ptr;
+                rhs.ptr = nullptr;
+                
+                this->ptr = tmp_ptr;
+            }
         }
 
         // queries
@@ -147,22 +165,24 @@ namespace mylib {
         };
 
         class allocator {
+        public:
             const static int N = 3;
+
             static void * var_for_type;
 
             using stack_alloc_storage = typename std::aligned_storage<
                     N * sizeof(decltype(var_for_type)), std::alignment_of<decltype(var_for_type)>::value>::type;
 
-            stack_alloc_storage buf[1];
 
             template <typename T>
             using need_allocation = typename std::integral_constant<bool, !((sizeof(T) <= sizeof(stack_alloc_storage)) &&
                 (std::alignment_of<T>::value <=
-                std::alignment_of<stack_alloc_storage>::value))>;
+                std::alignment_of<stack_alloc_storage>::value) &&
+                (std::is_nothrow_copy_constructible<T>::value))>;
+
+            stack_alloc_storage buf[1];
 
             enum Tag_t {EMPTY, SMALL, BIG} tag = EMPTY;
-
-        public:
 
             template <typename T>
             god_of_war *allocate(const T &obj) {
