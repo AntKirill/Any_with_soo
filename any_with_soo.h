@@ -25,7 +25,7 @@ namespace mylib {
 
         any(const any &rhs) {
             if (rhs.empty()) ptr = nullptr;
-            ptr = rhs.ptr->make_copy();
+            ptr = rhs.ptr->make_copy(this->memalloc_ptr);
         }
 
         any(any &&rhs) noexcept {
@@ -35,18 +35,18 @@ namespace mylib {
 
         template<typename ValueType>
         any(const ValueType &rhs) {
-            ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
+            ptr = memalloc_ptr->allocate(rhs);
         }
 
         template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type >
         any(ValueType &&rhs) noexcept {
-            ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
+            ptr =  memalloc_ptr->allocate(rhs);
         }
 
         any &operator=(const any &rhs) {
             clear();
             if (rhs.empty()) return *this;
-            ptr = rhs.ptr->make_copy();
+            ptr = rhs.ptr->make_copy(this->memalloc_ptr);
             return *this;
         }
 
@@ -60,26 +60,30 @@ namespace mylib {
         template<typename ValueType>
         any &operator=(const ValueType &rhs) {
             clear();
-            ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
+            ptr = memalloc_ptr->allocate( rhs);
             return *this;
         }
 
         template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type>
         any &operator=(ValueType &&rhs) noexcept {
             clear();
-            ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
+            ptr = memalloc_ptr->allocate(rhs);
             return *this;
         }
 
         ~any() {
-            delete ptr;
+            clear();
         }
 
         // modifiers
         any &swap(any &rhs) noexcept {
-            god_of_war *tmp = rhs.ptr;
-            rhs.ptr = ptr;
-            ptr = tmp;
+//            god_of_war *tmp = rhs.ptr;
+//            rhs.ptr = ptr;
+//            ptr = tmp;
+//
+            std::swap(this->ptr, rhs.ptr);
+            std::swap(this->memalloc_ptr, rhs.memalloc_ptr);
+
             return *this;
         }
 
@@ -94,7 +98,7 @@ namespace mylib {
         }
 
         void clear() noexcept {
-            delete ptr;
+            memalloc_ptr->free(ptr);
             ptr = nullptr;
         }
 
@@ -118,12 +122,14 @@ namespace mylib {
         template<typename T>
         using rem_ref_t = typename std::remove_reference<T>::type;
 
+        struct allocator;
+
         struct god_of_war {
             virtual ~god_of_war() {}
 
             virtual const std::type_info &get_type_info() const noexcept = 0;
 
-            virtual god_of_war *make_copy() const = 0;
+            virtual god_of_war *make_copy(allocator *alloc) const = 0;
         };
 
         template<typename T>
@@ -136,8 +142,8 @@ namespace mylib {
                 return typeid(obj);
             }
 
-            war<T> *make_copy() const {
-                return new war<T>(obj); //TODO make optimized allocation
+            god_of_war *make_copy(allocator *alloc) const {
+                return alloc->allocate(obj);
             }
 
             T get_obj() noexcept {
@@ -152,9 +158,6 @@ namespace mylib {
             T obj;
         };
 
-        god_of_war *ptr;
-
-        template <typename T>
         class allocator {
             const static int N = 2;
             void * var_for_type;
@@ -164,25 +167,34 @@ namespace mylib {
 
             stack_alloc_storage buf[N];
 
+            template <typename T>
             using need_allocation = typename std::integral_constant<bool, !(sizeof(T) <= N * sizeof(stack_alloc_storage) &&
                                                                             std::alignment_of<T>::value <=
                                                                             std::alignment_of<stack_alloc_storage>::value)>;
+            enum Tag_t {EMPTY, SMALL, BIG} tag = EMPTY;
 
         public:
-            template<typename U = typename need_allocation::type>
-            T *allocate(T obj) {
-                if (!U::value) return new(buf) (typename std::remove_reference<T>::type)((obj));
-                else return new (typename std::remove_reference<T>::type)(obj);
+            template<typename T, typename U = typename need_allocation<T>::type>
+            god_of_war *allocate(T obj) {
+                if (!U::value) {
+                    tag = SMALL;
+                    return (new(buf) war<rem_ref_t<decltype(obj)>>(obj));
+                } else {
+                    tag = BIG;
+                    return new war<rem_ref_t<decltype(obj)>>(obj);
+                }
             }
 
-            template<typename U = typename need_allocation::type>
             void free(god_of_war *ptr) {
-                if (!U::value) ptr = nullptr;
-                else delete ptr;
+                if (tag == SMALL) {
+                    ptr->~god_of_war();
+                } else if (tag == BIG) delete ptr;
+                tag = EMPTY;
             }
-        };
+        } memalloc;
 
-        void *alloc_ptr;
+        god_of_war *ptr;
+        allocator *memalloc_ptr = &memalloc;
     };
 
     void swap(any &a, any &b) noexcept {
