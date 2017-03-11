@@ -40,7 +40,7 @@ namespace mylib {
 
         template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type >
         any(ValueType &&rhs) noexcept {
-            ptr =  memalloc_ptr->allocate(rhs);
+            ptr =  memalloc_ptr->allocate(std::forward<ValueType>(rhs));
         }
 
         any &operator=(const any &rhs) {
@@ -67,7 +67,7 @@ namespace mylib {
         template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type>
         any &operator=(ValueType &&rhs) noexcept {
             clear();
-            ptr = memalloc_ptr->allocate(rhs);
+            ptr = memalloc_ptr->allocate(std::forward<ValueType>(rhs));
             return *this;
         }
 
@@ -77,13 +77,8 @@ namespace mylib {
 
         // modifiers
         any &swap(any &rhs) noexcept {
-//            god_of_war *tmp = rhs.ptr;
-//            rhs.ptr = ptr;
-//            ptr = tmp;
-//
             std::swap(this->ptr, rhs.ptr);
             std::swap(this->memalloc_ptr, rhs.memalloc_ptr);
-
             return *this;
         }
 
@@ -134,7 +129,9 @@ namespace mylib {
 
         template<typename T>
         struct war : public god_of_war {
-            war(T obj) : obj(obj) {}
+            war(T &&obj) : obj(static_cast< T&& >(obj)) {}
+
+            war(const T &obj) : obj(obj) {}
 
             war() {}
 
@@ -149,39 +146,51 @@ namespace mylib {
             T get_obj() noexcept {
                 return obj;
             }
+//
+//            T *get_adr_obj() {
+//                return &obj;
+//            }
 
-            T *get_adr_obj() {
-                return &obj;
-            }
-
-        private:
             T obj;
         };
 
         class allocator {
-            const static int N = 2;
-            void * var_for_type;
+            const static int N = 3;
+            static void * var_for_type;
 
             using stack_alloc_storage = typename std::aligned_storage<
                     N * sizeof(decltype(var_for_type)), std::alignment_of<decltype(var_for_type)>::value>::type;
 
-            stack_alloc_storage buf[N];
+            stack_alloc_storage buf[1];
 
             template <typename T>
-            using need_allocation = typename std::integral_constant<bool, !(sizeof(T) <= N * sizeof(stack_alloc_storage) &&
-                                                                            std::alignment_of<T>::value <=
-                                                                            std::alignment_of<stack_alloc_storage>::value)>;
+            using need_allocation = typename std::integral_constant<bool, !((sizeof(T) <= sizeof(stack_alloc_storage)) &&
+                (std::alignment_of<T>::value <=
+                std::alignment_of<stack_alloc_storage>::value))>;
+
             enum Tag_t {EMPTY, SMALL, BIG} tag = EMPTY;
 
         public:
-            template<typename T, typename U = typename need_allocation<T>::type>
-            god_of_war *allocate(T obj) {
-                if (!U::value) {
+
+            template <typename T>
+            god_of_war *allocate(const T &obj) {
+                if (!need_allocation< war<rem_ref_t<T> > >::value) {
                     tag = SMALL;
-                    return (new(buf) war<rem_ref_t<decltype(obj)>>(obj));
+                    return new(buf) war<typename std::remove_cv<typename std::decay<const T>::type>::type>(obj);
                 } else {
                     tag = BIG;
-                    return new war<rem_ref_t<decltype(obj)>>(obj);
+                    return new war<typename std::remove_cv<typename std::decay<const T>::type>::type>(obj);
+                }
+            }
+
+            template<typename T>
+            god_of_war *allocate(T &&obj) {
+                if (!need_allocation<war<rem_ref_t<T> >>::value) {
+                    tag = SMALL;
+                    return new(buf) war< typename std::decay<T>::type >(std::forward(obj));
+                } else {
+                    tag = BIG;
+                    return new war< typename std::decay<T>::type >(static_cast<T&&>(obj));
                 }
             }
 
@@ -225,19 +234,23 @@ namespace mylib {
 
     template<typename T>
     T *any_cast(any *a) {
-        any::war<T> *casted = dynamic_cast<any::war<T> *>(a->ptr);
-        if (casted == 0) {
-            return nullptr;
-        }
-        return casted->get_adr_obj();
+//        any::war<T> *casted = dynamic_cast<any::war<T> *>(a->ptr);
+//        if (casted == 0) {
+//            return nullptr;
+//        }
+//        return casted->get_adr_obj();
+        return a && a->type() == typeid(T)
+               ? &static_cast<any::war<typename std::remove_cv<T>::type> *>(a->ptr)->obj
+               : 0;
     }
 
     template<typename T>
     const T *any_cast(const any *a) {
-        mylib::any *tmp;
-        tmp = const_cast<any *>(a);
-        T *ans = any_cast<T>(tmp);
-        return ans;
+//        mylib::any *tmp;
+//        tmp = const_cast<any *>(a);
+//        T *ans = any_cast<T>(tmp);
+//        return ans;
+        return any_cast<T>(const_cast<any *>(a));
     }
 }
 

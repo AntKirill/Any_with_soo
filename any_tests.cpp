@@ -168,36 +168,36 @@ int main()
          CHECK(weak.use_count() == 0);
      }
 
-    // {
-    //     auto is_stack_allocated = [](const any& a, const void* obj1) {
-    //         uintptr_t a_ptr = (uintptr_t)(&a);
-    //         uintptr_t obj   = (uintptr_t)(obj1);
-    //         return (obj >= a_ptr && obj < a_ptr + sizeof(any));
-    //     };
+    {
+        auto is_stack_allocated = [](const any& a, const void* obj1) {
+            uintptr_t a_ptr = (uintptr_t)(&a);
+            uintptr_t obj   = (uintptr_t)(obj1);
+            return (obj >= a_ptr && obj < a_ptr + sizeof(any));
+        };
 
-    //     //static_assert(sizeof(std::unique_ptr<big_type>) <= sizeof(void*) * 1, "unique_ptr too big");
-    //     static_assert(sizeof(std::shared_ptr<big_type>) <= sizeof(void*) * 2, "shared_ptr too big");
+        //static_assert(sizeof(std::unique_ptr<big_type>) <= sizeof(void*) * 1, "unique_ptr too big");
+        static_assert(sizeof(std::shared_ptr<big_type>) <= sizeof(void*) * 2, "shared_ptr too big");
 
-    //     any i = 400;
-    //     any f = 400.0f;
-    //     //any unique = std::unique_ptr<big_type>(); -- must be copy constructible
-    //     any shared = std::shared_ptr<big_type>();
-    //     any rawptr = (void*)(nullptr);
-    //     any big = big_type();
-    //     any w2 = words<2>();
-    //     any w3 = words<3>();
+        any i = 400;
+        any f = 400.0f;
+        //any unique = std::unique_ptr<big_type>(); -- must be copy constructible
+        any shared = std::shared_ptr<big_type>();
+        any rawptr = (void*)(nullptr);
+        any big = big_type();
+        any w2 = words<2>();
+        any w3 = words<3>();
 
-    //     CHECK(is_stack_allocated(i, any_cast<int>(&i)));
-    //     CHECK(is_stack_allocated(f, any_cast<float>(&f)));
-    //     CHECK(is_stack_allocated(rawptr, any_cast<void*>(&rawptr)));
-    //     //CHECK(is_stack_allocated(unique, any_cast<std::unique_ptr<big_type>>(&unique)));
-    //     CHECK(is_stack_allocated(shared, any_cast<std::shared_ptr<big_type>>(&shared)));
-    //     CHECK(!is_stack_allocated(big, any_cast<big_type>(&big)));
-    //     CHECK(is_stack_allocated(w2, any_cast<words<2>>(&w2)));
-    //     CHECK(!is_stack_allocated(w3, any_cast<words<3>>(&w3)));
+        CHECK(is_stack_allocated(i, any_cast<int>(&i)));
+        CHECK(is_stack_allocated(f, any_cast<float>(&f)));
+        CHECK(is_stack_allocated(rawptr, any_cast<void*>(&rawptr)));
+        //CHECK(is_stack_allocated(unique, any_cast<std::unique_ptr<big_type>>(&unique)));
+        CHECK(is_stack_allocated(shared, any_cast<std::shared_ptr<big_type>>(&shared)));
+        CHECK(!is_stack_allocated(big, any_cast<big_type>(&big)));
+        CHECK(is_stack_allocated(w2, any_cast<words<2>>(&w2)));
+        CHECK(!is_stack_allocated(w3, any_cast<words<3>>(&w3)));
 
-    //     // Regression test for GitHub Issue #1
-    //     any r1 = regression1_type();
-    //     CHECK(is_stack_allocated(r1, any_cast<const regression1_type>(&r1)));
-    // }
+        // Regression test for GitHub Issue #1
+        any r1 = regression1_type();
+        CHECK(is_stack_allocated(r1, any_cast<const regression1_type>(&r1)));
+    }
 }
