@@ -38,7 +38,7 @@ namespace mylib {
             ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
         }
 
-        template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type>
+        template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type >
         any(ValueType &&rhs) noexcept {
             ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
         }
@@ -66,7 +66,7 @@ namespace mylib {
 
         template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type>
         any &operator=(ValueType &&rhs) noexcept {
-            delete ptr;
+            clear();
             ptr = new war <rem_ref_t<decltype(rhs)>>(rhs);
             return *this;
         }
@@ -137,7 +137,7 @@ namespace mylib {
             }
 
             war<T> *make_copy() const {
-                return new war<T>(obj);
+                return new war<T>(obj); //TODO make optimized allocation
             }
 
             T get_obj() noexcept {
@@ -154,6 +154,35 @@ namespace mylib {
 
         god_of_war *ptr;
 
+        template <typename T>
+        class allocator {
+            const static int N = 2;
+            void * var_for_type;
+
+            using stack_alloc_storage = typename std::aligned_storage<
+                    N * sizeof(decltype(var_for_type)), std::alignment_of<decltype(var_for_type)>::value>::type;
+
+            stack_alloc_storage buf[N];
+
+            using need_allocation = typename std::integral_constant<bool, !(sizeof(T) <= N * sizeof(stack_alloc_storage) &&
+                                                                            std::alignment_of<T>::value <=
+                                                                            std::alignment_of<stack_alloc_storage>::value)>;
+
+        public:
+            template<typename U = typename need_allocation::type>
+            T *allocate(T obj) {
+                if (!U::value) return new(buf) (typename std::remove_reference<T>::type)((obj));
+                else return new (typename std::remove_reference<T>::type)(obj);
+            }
+
+            template<typename U = typename need_allocation::type>
+            void free(god_of_war *ptr) {
+                if (!U::value) ptr = nullptr;
+                else delete ptr;
+            }
+        };
+
+        void *alloc_ptr;
     };
 
     void swap(any &a, any &b) noexcept {
