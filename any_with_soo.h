@@ -19,7 +19,7 @@ namespace mylib {
     struct any {
 
         // construct/copy/destruct
-        any() {
+        any() noexcept {
             ptr = nullptr;
         }
 
@@ -80,12 +80,10 @@ namespace mylib {
             if (this->memalloc.tag == allocator::Tag_t::EMPTY) {
                 *this = rhs;
                 rhs.clear();
-            }
-            if (rhs.memalloc.tag == allocator::Tag_t::EMPTY) {
+            } else if (rhs.memalloc.tag == allocator::Tag_t::EMPTY) {
                 rhs = *this;
                 this->clear();
-            }
-            if (this->memalloc.tag == allocator::Tag_t::BIG && rhs.memalloc.tag == allocator::Tag_t::BIG) {
+            } else if (this->memalloc.tag == allocator::Tag_t::BIG && rhs.memalloc.tag == allocator::Tag_t::BIG) {
                 std::swap(this->ptr, rhs.ptr);
             } else if (this->memalloc.tag == allocator::Tag_t::SMALL && rhs.memalloc.tag == allocator::Tag_t::SMALL) {
                 any tmp = rhs;
@@ -113,10 +111,10 @@ namespace mylib {
 
         // queries
         bool empty() const noexcept {
-            return ptr == nullptr;
+            return memalloc.tag == allocator::Tag_t::EMPTY;
         }
 
-        const std::type_info &type() const {
+        const std::type_info &type() const noexcept {
             if (empty()) return typeid(void);
             return ptr->get_type_info();
         }
@@ -258,7 +256,7 @@ namespace mylib {
     template<typename T>
     T *any_cast(any *a) {
         return a && a->type() == typeid(T)
-               ? &static_cast<any::war<typename std::remove_cv<T>::type> *>(a->ptr)->obj
+               ? &dynamic_cast<any::war<typename std::remove_cv<T>::type> *>(a->ptr)->obj
                : nullptr;
     }
 
