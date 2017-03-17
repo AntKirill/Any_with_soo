@@ -197,10 +197,10 @@ namespace mylib {
             god_of_war *allocate(const T &obj) {
                 if (!need_allocation< war<rem_ref_t<T> > >::value) {
                     tag = SMALL;
-                    return new(buf) war<typename std::remove_cv<typename std::decay<const T>::type>::type>(obj);
+                    return new(buf) war<typename std::decay<T>::type>(obj);
                 } else {
                     tag = BIG;
-                    return new war<typename std::remove_cv<typename std::decay<const T>::type>::type>(obj);
+                    return new war<typename std::decay<T>::type>(obj);
                 }
             }
 
@@ -208,10 +208,10 @@ namespace mylib {
             god_of_war *allocate(T &&obj) {
                 if (!need_allocation<war<rem_ref_t<T> >>::value) {
                     tag = SMALL;
-                    return new(buf) war< typename std::decay<T>::type >(static_cast<T&&>(obj));
+                    return new(buf) war< typename std::decay<T>::type >(std::forward<T>(obj));
                 } else {
                     tag = BIG;
-                    return new war< typename std::decay<T>::type >(static_cast<T&&>(obj));
+                    return new war< typename std::decay<T>::type >(std::forward<T>(obj));
                 }
             }
 
