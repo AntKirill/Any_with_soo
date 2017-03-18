@@ -24,11 +24,16 @@ namespace mylib {
         }
 
         any(const any &rhs) {
-            ptr = rhs.ptr->make_copy(this->memalloc);
+            if (rhs.empty()) {
+                clear();
+            } else {
+                ptr = rhs.ptr->make_copy(this->memalloc);
+            }
         }
 
         any(any &&rhs) noexcept {
-            ptr = rhs.ptr->make_copy(this->memalloc);
+            // ptr = rhs.ptr->make_copy(this->memalloc);
+            ptr = rhs.ptr->move_obj(this->memalloc);
         }
 
         template<typename ValueType>
@@ -42,6 +47,10 @@ namespace mylib {
         }
 
         any &operator=(const any &rhs) {
+            if (rhs.empty()) {
+                clear();
+                return *this;
+            }
             any tmp = rhs;
             clear();
             if (tmp.empty()) return *this;
@@ -151,6 +160,8 @@ namespace mylib {
             virtual const std::type_info &get_type_info() const noexcept = 0;
 
             virtual god_of_war *make_copy(allocator &alloc) const = 0;
+
+            virtual god_of_war *move_obj(allocator &alloc) const = 0;
         };
 
         template<typename T>
@@ -167,6 +178,10 @@ namespace mylib {
 
             god_of_war *make_copy(allocator &alloc) const {
                 return alloc.allocate(obj);
+            }
+
+            god_of_war *move_obj(allocator &alloc) const {
+            	return alloc.allocate(std::move(obj));
             }
 
             T obj;

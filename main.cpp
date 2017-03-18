@@ -100,9 +100,18 @@ void test5() {
 // }
 
 void test7() {
-	any a = 5;
+	any a = 54321;
 	a = a;
 	cout << any_cast<int>(a) << endl;
+	swap(a, a);
+	cout << any_cast<int>(a) << endl;
+}
+
+void test8() {
+	unique_ptr<any> pa = make_unique<any>(5);
+	any b = move(*pa);
+	pa.reset();
+	cout << any_cast<int>(b) << endl;
 }
 
 int main() {
@@ -113,4 +122,5 @@ int main() {
     test4();
     test5();
     test7();
+    test8();
 }
