@@ -24,16 +24,13 @@ namespace mylib {
         }
 
         any(const any &rhs) {
-            if (rhs.empty()) {
-                clear();
-            } else {
-                ptr = rhs.ptr->make_copy(this->memalloc);
-            }
+            if (!rhs.empty()) ptr = rhs.ptr->make_copy(this->memalloc);
+            
         }
 
         any(any &&rhs) noexcept {
             // ptr = rhs.ptr->make_copy(this->memalloc);
-            ptr = rhs.ptr->move_obj(this->memalloc);
+            if (!rhs.empty()) ptr = rhs.ptr->move_obj(this->memalloc);
         }
 
         template<typename ValueType>
