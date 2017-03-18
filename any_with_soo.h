@@ -24,8 +24,7 @@ namespace mylib {
         }
 
         any(const any &rhs) {
-            if (rhs.empty()) ptr = nullptr;
-            ptr = rhs.ptr->make_copy(this->memalloc_ptr);
+            ptr = rhs.ptr->make_copy(this->memalloc);
         }
 
         any(any &&rhs) noexcept {
@@ -35,18 +34,19 @@ namespace mylib {
 
         template<typename ValueType>
         any(const ValueType &rhs) {
-            ptr = memalloc_ptr->allocate(rhs);
+            ptr = memalloc.allocate(rhs);
         }
 
         template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type >
         any(ValueType &&rhs) noexcept {
-            ptr =  memalloc_ptr->allocate(std::forward<ValueType>(rhs));
+            ptr =  memalloc.allocate(std::forward<ValueType>(rhs));
         }
 
         any &operator=(const any &rhs) {
+            any tmp = rhs;
             clear();
-            if (rhs.empty()) return *this;
-            ptr = rhs.ptr->make_copy(this->memalloc_ptr);
+            if (tmp.empty()) return *this;
+            ptr = tmp.ptr->make_copy(this->memalloc);
             return *this;
         }
 
@@ -60,14 +60,14 @@ namespace mylib {
         template<typename ValueType>
         any &operator=(const ValueType &rhs) {
             clear();
-            ptr = memalloc_ptr->allocate( rhs);
+            ptr = memalloc.allocate( rhs);
             return *this;
         }
 
         template<typename ValueType, typename = typename std::enable_if<!std::is_same<typename std::decay<ValueType>::type, any>::value>::type>
         any &operator=(ValueType &&rhs) noexcept {
             clear();
-            ptr = memalloc_ptr->allocate(std::forward<ValueType>(rhs));
+            ptr = memalloc.allocate(std::forward<ValueType>(rhs));
             return *this;
         }
 
@@ -92,7 +92,7 @@ namespace mylib {
             } else if (this->memalloc.tag == allocator::Tag_t::BIG && rhs.memalloc.tag == allocator::Tag_t::SMALL) {
                 god_of_war *tmp_ptr = this->ptr;
                 this->ptr = nullptr;
-                this->ptr = rhs.ptr->make_copy(this->memalloc_ptr);
+                this->ptr = rhs.ptr->make_copy(this->memalloc);
                 rhs.memalloc.free(rhs.ptr);
                 rhs.ptr = tmp_ptr;
                 this->memalloc.tag = allocator::Tag_t::SMALL;
@@ -100,7 +100,7 @@ namespace mylib {
             } else if (this->memalloc.tag == allocator::Tag_t::SMALL && rhs.memalloc.tag == allocator::Tag_t::BIG) {
                 god_of_war *tmp_ptr = rhs.ptr;
                 rhs.ptr = nullptr;
-                rhs.ptr = this->ptr->make_copy(rhs.memalloc_ptr);
+                rhs.ptr = this->ptr->make_copy(rhs.memalloc);
                 this->memalloc.free(this->ptr);
                 this->ptr = tmp_ptr;
                 this->memalloc.tag = allocator::Tag_t::BIG;
@@ -120,7 +120,7 @@ namespace mylib {
         }
 
         void clear() noexcept {
-            memalloc_ptr->free(ptr);
+            memalloc.free(ptr);
             ptr = nullptr;
         }
 
@@ -151,7 +151,7 @@ namespace mylib {
 
             virtual const std::type_info &get_type_info() const noexcept = 0;
 
-            virtual god_of_war *make_copy(allocator *alloc) const = 0;
+            virtual god_of_war *make_copy(allocator &alloc) const = 0;
         };
 
         template<typename T>
@@ -166,8 +166,8 @@ namespace mylib {
                 return typeid(obj);
             }
 
-            god_of_war *make_copy(allocator *alloc) const {
-                return alloc->allocate(obj);
+            god_of_war *make_copy(allocator &alloc) const {
+                return alloc.allocate(obj);
             }
 
             T obj;
@@ -224,7 +224,7 @@ namespace mylib {
         } memalloc;
 
         god_of_war *ptr;
-        allocator *memalloc_ptr = &memalloc;
+        //allocator *memalloc_ptr = &memalloc;
     };
 
     void swap(any &a, any &b) noexcept {

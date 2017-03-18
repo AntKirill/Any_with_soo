@@ -1,7 +1,9 @@
 #include <iostream>
 #include "any_with_soo.h"
 #include <cstdint>
+#include <memory>
 #include <vector>
+#include <boost/any.hpp>
 
 using namespace std;
 
@@ -24,7 +26,7 @@ void test1() {
 
 	mylib::any anystr = 2;
 	mylib::any anyint = string("Hello, World!");
-	mylib::swap(anystr, anyint);
+	mylib::swap(anyint, anystr);
 	cout << mylib::any_cast<string>(anystr) << endl;
 	cout << mylib::any_cast<int>(anyint) << endl;
 
@@ -74,10 +76,41 @@ void test0() {
 //    cout << mylib::any_cast<int>(a) << endl;
 }
 
+using namespace mylib;
+void test5() {
+	any a = 5;
+	{
+		any b = 10;
+		for (int i = 101; i > 1; i--) {
+			swap(a, b);
+		}
+	}
+	cout << any_cast<int>(a) << endl;
+}
+
+// void test6() {
+// 	unique_ptr<int> a = make_unique<int>(5);
+// 	boost::any aholder = a;
+// 	{
+// 		unique_ptr<int> b = make_unique<int>(6);
+// 		boost::any bholder = b;
+// 		boost::swap(aholder,bholder);
+// 	}
+// 	cout << boost::any_cast<unique_ptr<int>	>(aholder) << endl;
+// }
+
+void test7() {
+	any a = 5;
+	a = a;
+	cout << any_cast<int>(a) << endl;
+}
+
 int main() {
-    test0();
+	test0();
 	test1();
 	test2();
 	test3();
     test4();
+    test5();
+    test7();
 }
