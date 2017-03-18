@@ -28,8 +28,7 @@ namespace mylib {
         }
 
         any(any &&rhs) noexcept {
-            ptr = rhs.ptr;
-            rhs.clear();
+            ptr = rhs.ptr->make_copy(this->memalloc);
         }
 
         template<typename ValueType>
