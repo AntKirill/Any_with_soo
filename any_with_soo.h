@@ -29,7 +29,6 @@ namespace mylib {
         }
 
         any(any &&rhs) noexcept {
-            // ptr = rhs.ptr->make_copy(this->memalloc);
             if (!rhs.empty()) ptr = rhs.ptr->move_obj(this->memalloc);
         }
 
@@ -204,17 +203,6 @@ namespace mylib {
 
             enum Tag_t {EMPTY, SMALL, BIG} tag = EMPTY;
 
-            template <typename T>
-            god_of_war *allocate(const T &obj) {
-                if (!need_allocation< war<rem_ref_t<T> > >::value) {
-                    tag = SMALL;
-                    return new(buf) war<typename std::decay<T>::type>(obj);
-                } else {
-                    tag = BIG;
-                    return new war<typename std::decay<T>::type>(obj);
-                }
-            }
-
             template<typename T>
             god_of_war *allocate(T &&obj) {
                 if (!need_allocation<war<rem_ref_t<T> >>::value) {
@@ -235,7 +223,6 @@ namespace mylib {
         } memalloc;
 
         god_of_war *ptr;
-        //allocator *memalloc_ptr = &memalloc;
     };
 
     void swap(any &a, any &b) noexcept {
